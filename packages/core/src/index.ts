@@ -1,27 +1,27 @@
 /* eslint-disable @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any */
 
-import { CompiledMessage } from "./msgfmt.js";
-import { EvalOption, evaluateMessage } from "./msgfmt-eval.js";
-import { parseMessage } from "./msgfmt-parser.js";
-import type {
-  ComponentPlaceholder,
-  InferredMessageType,
-} from "./msgfmt-parser-types.js";
+import {
+  defaultErrorHandler,
+  ErrorHandler,
+  ErrorLevel,
+} from "./error-handling.js";
 import {
   MessageError,
   MissingLocaleError,
   MissingTranslationError,
   NoLocaleError,
 } from "./errors.js";
-import {
-  defaultErrorHandler,
-  ErrorHandler,
-  ErrorLevel,
-} from "./error-handling.js";
+import { EvalOption, evaluateMessage } from "./msgfmt-eval.js";
+import type {
+  ComponentPlaceholder,
+  InferredMessageType,
+} from "./msgfmt-parser-types.js";
+import { parseMessage } from "./msgfmt-parser.js";
+import { CompiledMessage } from "./msgfmt.js";
 
-export type { ComponentPlaceholder } from "./msgfmt-parser-types.js";
-export * from "./errors.js";
 export * from "./error-handling.js";
+export * from "./errors.js";
+export type { ComponentPlaceholder } from "./msgfmt-parser-types.js";
 
 declare const messageBrandSymbol: unique symbol;
 declare const translationIdBrandSymbol: unique symbol;
@@ -185,16 +185,19 @@ msg.todo = function todo<S extends string>(s: S): InferredMessageType<S> {
  */
 export function translationId<
   Vocabulary extends VocabularyBase,
-  K extends string & keyof Vocabulary
+  K extends string
 >(
   book: Book<Vocabulary>,
   id: K
-): TranslationId<Vocabulary, AbstractMessageArguments<Vocabulary[K]>> {
+): Vocabulary[K] extends Message
+  ? TranslationId<Vocabulary, AbstractMessageArguments<Vocabulary[K]>>
+  : never {
   const _book = book;
   return id as string as TranslationId<
     Vocabulary,
     AbstractMessageArguments<Vocabulary[K]>
-  >;
+  > &
+    never;
 }
 
 /**
@@ -499,7 +502,7 @@ type TranslatorFunction<Vocabulary extends VocabularyBase> = {
    *   t("example/greeting-simple"); // => "Hello!"
    *   ```
    */
-  (id: SimpleMessageKeys<Vocabulary>): string;
+  <K extends string>(id: K): Vocabulary[K] extends Message ? string : never;
 
   /**
    * Returns the translated message.
